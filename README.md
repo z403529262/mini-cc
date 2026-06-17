@@ -54,7 +54,7 @@ while (true) {
 - [x] **M0** 单轮问答 — `src/m0.ts`
 - [x] **M1** agent loop + bash 工具 — `src/m1.ts`
 - [x] **M2** 多工具：read / write / edit / glob / grep — `src/tools.ts` + `src/m2.ts`
-- [ ] **M3** 流式输出 + 可中断（Esc）
+- [x] **M3** 流式输出 + 可中断（Esc）— `src/m3.ts`（execute 异步化见 `src/tools.ts`；中断验证 `demo/abort-check.ts`）
 - [ ] **M4** 上下文压缩 + prompt caching
 - [ ] **M5** 工具权限审批（危险命令拦截）
 - [ ] **M6** MCP 客户端

@@ -46,7 +46,7 @@ while (true) {
     if (b.type === "tool_use") {
       const tool = toolMap.get(b.name)
       console.log(`执行｜${b.name} ${JSON.stringify(b.input).slice(0, 140)}`)
-      const out = tool ? tool.execute(b.input) : `[未知工具] ${b.name}`
+      const out = tool ? await tool.execute(b.input) : `[未知工具] ${b.name}`
       console.log(out.length > 300 ? out.slice(0, 300) + " …(截断)" : out)
       results.push({ type: "tool_result", tool_use_id: b.id, content: out })
     }
