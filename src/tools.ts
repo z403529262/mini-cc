@@ -7,8 +7,11 @@ import type Anthropic from "@anthropic-ai/sdk"
 // + 一个给代码用的「执行体」(execute)。两者合在一个对象里，但职责分明。
 // M3 起 execute 升级为 async + 可选 signal —— 这才是工具的正确形态：
 //   异步 → 长命令不阻塞 event loop；signal → Esc 一到就能中断。
+// M5 起加 readOnly —— 工具自报「只读性」：只读(read/glob/grep)可自动放行，
+//   有副作用(write/edit/bash)要过权限门(见 permission.ts)。也是「只读才并发」的依据。
 export interface Tool {
   name: string
+  readOnly: boolean
   description: string
   input_schema: Anthropic.Tool["input_schema"]
   execute(input: any, signal?: AbortSignal): Promise<string>
@@ -16,6 +19,7 @@ export interface Tool {
 
 const read_file: Tool = {
   name: "read_file",
+  readOnly: true,
   description: "读取指定文件的全部内容。",
   input_schema: {
     type: "object",
@@ -30,6 +34,7 @@ const read_file: Tool = {
 
 const write_file: Tool = {
   name: "write_file",
+  readOnly: false,
   description: "把内容整体写入文件（覆盖原内容；文件不存在则创建）。",
   input_schema: {
     type: "object",
@@ -51,6 +56,7 @@ const write_file: Tool = {
 // ★ D2 的明星：精确字符串替换。比让模型用 bash sed 安全可靠得多。
 const edit_file: Tool = {
   name: "edit_file",
+  readOnly: false,
   description: "把文件中的 old_string 精确替换为 new_string。old_string 必须在文件中【唯一出现】，否则报错——这样保证改的就是你想改的那一处。",
   input_schema: {
     type: "object",
@@ -75,6 +81,7 @@ const edit_file: Tool = {
 
 const glob: Tool = {
   name: "glob",
+  readOnly: true,
   description: "按 glob 模式查找文件，例如 src/**/*.ts。返回匹配的文件路径。",
   input_schema: {
     type: "object",
@@ -92,6 +99,7 @@ const glob: Tool = {
 
 const grep: Tool = {
   name: "grep",
+  readOnly: true,
   description: "在文件里按关键词搜索内容，返回 文件:行号:内容。",
   input_schema: {
     type: "object",
@@ -114,6 +122,7 @@ const grep: Tool = {
 
 const bash: Tool = {
   name: "bash",
+  readOnly: false,
   description: "执行一条 bash 命令（用于上面专门工具覆盖不到的操作）。",
   input_schema: {
     type: "object",

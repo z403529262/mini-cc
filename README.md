@@ -56,7 +56,7 @@ while (true) {
 - [x] **M2** 多工具：read / write / edit / glob / grep — `src/tools.ts` + `src/m2.ts`
 - [x] **M3** 流式输出 + 可中断（Esc）— `src/m3.ts`（execute 异步化见 `src/tools.ts`；中断验证 `demo/abort-check.ts`）
 - [x] **M4** 上下文压缩 + prompt caching — `src/m4.ts`（caching：SYSTEM 断点 + `withRollingCache`）+ `src/compact.ts`（配对安全压缩）；验证 `demo/compact-check.ts`
-- [ ] **M5** 工具权限审批（危险命令拦截）
+- [x] **M5** 工具权限审批（危险命令拦截）— `src/permission.ts`（三态 allow/ask/deny）+ `src/m5.ts`（execute 前权限门）；验证 `demo/permission-check.ts` + `demo/permission-flow-check.ts`
 - [ ] **M6** MCP 客户端
 - [ ] **M7** 子 agent（隔离上下文的 Task）
 

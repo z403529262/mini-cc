@@ -37,3 +37,5 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 demo/*
 !demo/abort-check.ts
 !demo/compact-check.ts
+!demo/permission-check.ts
+!demo/permission-flow-check.ts
