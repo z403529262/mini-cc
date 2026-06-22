@@ -36,3 +36,4 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # mini-cc 运行测试时生成的产物（demo/ 下的临时文件；但保留验证脚本 abort-check.ts）
 demo/*
 !demo/abort-check.ts
+!demo/compact-check.ts
