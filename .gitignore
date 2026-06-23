@@ -39,3 +39,5 @@ demo/*
 !demo/compact-check.ts
 !demo/permission-check.ts
 !demo/permission-flow-check.ts
+!demo/mcp-server-calc.ts
+!demo/mcp-check.ts
