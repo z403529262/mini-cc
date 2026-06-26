@@ -33,11 +33,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Finder (MacOS) folder config
 .DS_Store
 
-# mini-cc 运行测试时生成的产物（demo/ 下的临时文件；但保留验证脚本 abort-check.ts）
-demo/*
-!demo/abort-check.ts
-!demo/compact-check.ts
-!demo/permission-check.ts
-!demo/permission-flow-check.ts
-!demo/mcp-server-calc.ts
-!demo/mcp-check.ts
+# demo/ 顶层都是源码（*-check.ts 验证脚本 + mcp-server-calc.ts 测试固件），直接追踪。
+# agent 跑 demo 时生成的产物统一写进 scratch/（各 m*.ts 默认任务已指向那里），只忽略这一个目录。
+demo/scratch/

@@ -16,7 +16,7 @@ const toolSchemas: Anthropic.Tool[] = tools.map((t) => ({
 
 const task =
   process.argv.slice(2).join(" ") ||
-  "在 demo/ 目录下创建 hello.ts，里面写一个打印 Hello 的函数；然后把其中的 Hello 改成 Hi；最后读出文件确认。"
+  "在 demo/scratch/ 目录下创建 hello.ts，里面写一个打印 Hello 的函数；然后把其中的 Hello 改成 Hi；最后读出文件确认。"
 const messages: Anthropic.MessageParam[] = [{ role: "user", content: task }]
 
 console.log(`任务：${task}\n可用工具：${tools.map((t) => t.name).join(", ")}\n`)

@@ -46,7 +46,7 @@ function withRollingCache(messages: Anthropic.MessageParam[]): Anthropic.Message
 
 const task =
   process.argv.slice(2).join(" ") ||
-  "在 demo/ 下创建 calc.ts，写一个加法函数；再把加法改成减法；最后读出文件确认。"
+  "在 demo/scratch/ 下创建 calc.ts，写一个加法函数；再把加法改成减法；最后读出文件确认。"
 let messages: Anthropic.MessageParam[] = [{ role: "user", content: task }]
 
 // 中断（同 m3）：Esc 打断当前轮，Ctrl+C 退出
