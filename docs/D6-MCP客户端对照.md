@@ -61,6 +61,47 @@ MCP tool  →  { name: mcp__calc__add, readOnly:false, input_schema, execute }  
 `src/m6.ts` 相对 `m5.ts` 只多三处：①loop 前连 MCP、合并工具表 ②开场提示带上 MCP 工具 ③收尾 `close`。
 **loop 主体逐字未动** —— 这就是 D6 要证明的。
 
+**m6 ← m5 的实质 diff**（`src/mcp.ts`/`demo/mcp-server-calc.ts`/`demo/mcp-check.ts` 是全新文件；这里只看对主循环的*修改*。注释/措辞略，完整逐行见 `diff src/m5.ts src/m6.ts`）：
+
+```diff
+ import Anthropic from "@anthropic-ai/sdk"
+ import readline from "node:readline"
+-import { tools, toolMap } from "./tools"
++import { join } from "node:path"
++import { tools as builtinTools, type Tool } from "./tools"   // ① 不再 import 固定 toolMap
+ import { compact, estimateTokens } from "./compact"
+ import { checkPermission } from "./permission"
++import { MCPClient } from "./mcp"
+
+-// ② m5：toolSchemas 在文件顶部，直接从固定的 6 个 tools 算
+-const toolSchemas = tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }))
+
+ const task = process.argv.slice(2).join(" ") || "用 calc 工具算 (2+3)*4 …"
+
++// ③ M6 核心：先连 MCP、合并工具，之后才建 toolMap / toolSchemas（构建时机随之后移）
++const mcp = new MCPClient(["bun", "run", join(import.meta.dir, "../demo/mcp-server-calc.ts")])
++let mcpTools: Tool[] = []
++try { await mcp.connect(); mcpTools = mcp.toTools("calc") }
++catch (e) { /* 连不上 → 降级为只用内置工具，不拖垮 agent */ }
++const allTools = [...builtinTools, ...mcpTools]
++const toolMap = new Map(allTools.map((t) => [t.name, t]))
++const toolSchemas = allTools.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema }))
+
++// ④ 非交互开关（真 CC acceptEdits/dontAsk 雏形）
++const AUTO_APPROVE = process.env.AUTO_APPROVE === "1"
+ function askApproval(prompt) {
++  if (AUTO_APPROVE) return Promise.resolve(true)
+   ...
+ }
+
+   // ===== while 循环体：toolMap.get(name) → checkPermission → execute，逐字未改 =====
+
++await mcp.close().catch(() => {})   // ⑤ 收尾：优雅关 server 子进程
+ process.exit(0)
+```
+
+**读法**：实质就 ①②③④⑤ 五处，**全在 loop 外**；`while` 循环体一行没动 —— 这就是「注册表 + 权限门」正交的证据。其中 ②③ 是同一件事的两面：工具表来源从「固定 6 个」变成「内置 + MCP 合并」，所以**构建时机也从文件顶部挪到了 `connect()` 之后**（toolMap/toolSchemas 依赖运行时才知道的 MCP 工具）。
+
 ## §4 权限：MCP 工具 = 不可信外部输入
 
 mini-cc 把 MCP 工具一律设 `readOnly: false` → 落到 `checkPermission` 的 `ask` 分支。
@@ -251,3 +292,69 @@ server 解析成**结构化事件**回来（不是文本）。
 - 远程 transport（SSE / StreamableHTTP）+ OAuth 认证。
 - 用户可配权限规则（现在 MCP 一律 ask；应支持 allow `mcp__calc__*` 这类规则，对接 D5 的规则引擎）。
 - **接其它 MCP 能力维度**（mini-cc 现在只接了 tools，见上方「能力全景图」）：resources（`resources/list`+`resources/read`，读 server 被动数据）、prompts（转 slash command）、roots（告诉 server 文件根）、elicitation（server 反向问用户）、`*/list_changed` 通知（热刷新工具表）。
+
+---
+
+# 第四部分：深挖答疑（换会话后的追问沉淀）
+
+> 体例同 D4/D5 文档第四部分。这几节是把"MCP 到底比『一堆工具』多了什么"追到底的产物。
+
+## §16 MCP prompts —— tools 之外，另一种「给用户用」的能力
+
+**是什么**：server 预设的**参数化提示词模板**，在 CC 里暴露成 slash command `/server:prompt`。
+
+**与 tools 的本质区别**（理解点）：
+
+| | 谁触发 | 给谁用 |
+|---|---|---|
+| **tools** | **模型**自己决定调（model-controlled） | 模型的"能力" |
+| **prompts** | **用户**主动从 `/` 菜单选（user-controlled） | 用户的"快捷指令" |
+
+**关键**：prompt 内容是 **server 在 `prompts/get` 时动态返回的**（cc-haha `getPromptForCommand` → `client.getPrompt({name,arguments})`，client.ts:2068，用的是 server 当场返回的 `result.messages`，不是本地静态文件）。所以 server 能在你触发的瞬间**注入实时数据**。
+
+**case**：GitHub `/github:summarize_pr 1234`（server 端实时拉 PR diff + 按规范总结）、Sentry `/sentry:analyze_issue <id>`、DB `/db:explain_schema`。
+**场景特征**：重复的、结构化的、套路固定的长指令 → 打包成一键命令。
+**现实**：prompts 用得少，绝大多数 server 只做 tools。
+
+## §17 MCP prompt vs skill —— 为什么上面那几个是 prompt 不是 skill
+
+**先戳破前提**：它们**都能**做成 skill；真正的问题是何时适合哪个。
+
+| 维度 | MCP prompt | skill |
+|---|---|---|
+| 谁拥有/维护 | 第三方 server 提供方（GitHub 官方） | **你/你团队**，在本地文件系统 |
+| 内容怎么来 | server 在 `prompts/get` **动态生成** | 静态 `SKILL.md`（+ 可选脚本） |
+| 绑外部系统 | 跟该 server 的 tools/认证**同源打包** | 本地的，自己不带连接 |
+| 方向 | **供给侧**：服务方标准化推给所有用户 | **需求侧**：使用方自己定制 |
+
+**那三个适合 prompt 的原因**：① server 动态生成能注入实时数据；② 都绑外部系统 + 认证，而你为了用它的 tools 已经连了那个 server，prompt 跟 tools 同源一次性分发；③ 供给侧——GitHub 想给所有人一套标准 PR 总结流程。
+
+**何时该 skill**：纯本地 / 私有 / 静态 / 不绑外部服务（例：用户自己的 `stock-research-report` skill）。
+
+**判断口诀**：
+> 这段工作流**要不要连某个外部系统、要不要它的实时数据/认证**？
+> 要 → 它自然属于那个系统的 MCP server（和 tools 打包，服务方维护）；
+> 纯本地/私有/静态 → skill（你自己维护）。
+
+**诚实补刀**：现实里 **skill 更流行**（一个 md 文件、不用跑 server，Anthropic 自己也大量用）。那几个例子换成 skill + `gh` CLI 完全可行——区别只在**归属和打包**，不是"必须 MCP"。
+
+## §18 实测：本机当前会话在用哪些 MCP、用了什么能力
+
+盘点这个 Claude Code 会话连着的 MCP（按 `mcp__*` 工具归类）：
+
+| MCP server | 干什么 | 能力 |
+|---|---|---|
+| andromeld | 控制 Android 手机 | tools |
+| computer-use | 控制 macOS 桌面 | tools |
+| Claude_in_Chrome | 浏览器自动化 | tools |
+| Claude_Preview | dev server 预览调试 | tools |
+| context7 | 查库的最新文档 | tools |
+| visualize | 生成可视化 widget | tools |
+| scheduled-tasks | 定时任务 / cron | tools |
+| mcp-registry | 搜索/列出可装的 connector | tools |
+| ccd_session / ccd_session_mgmt / ccd_directory | 会话 / 跨会话 / 目录操作 | tools |
+| codegraph | 代码图谱（本会话**未激活**，无 `.codegraph/`） | — |
+
+**结论：清一色 `tools`，零 `resources`、零 `prompts`。** resources 可坐实——若有 server 启用它，CC 会注入 `ListMcpResourcesTool` / `ReadMcpResourceTool` 两个工具，而当前工具列表里没有这俩。
+
+**why**：在用的这些全是**「动作执行型」**（控手机/浏览器/桌面、检索、调度、可视化），天然就是 tools；prompts 属于**「指令模板型」**server（GitHub/Sentry/Jira 那类），没装这类，所以从没碰过 prompts。**这正好印证 §全景图：tools 是 ~95% 的真实用例。**
