@@ -58,7 +58,7 @@ while (true) {
 - [x] **M4** 上下文压缩 + prompt caching — `src/m4.ts`（caching：SYSTEM 断点 + `withRollingCache`）+ `src/compact.ts`（配对安全压缩）；验证 `demo/compact-check.ts`
 - [x] **M5** 工具权限审批（危险命令拦截）— `src/permission.ts`（三态 allow/ask/deny）+ `src/m5.ts`（execute 前权限门）；验证 `demo/permission-check.ts` + `demo/permission-flow-check.ts`
 - [x] **M6** MCP 客户端（接外部工具）— `src/mcp.ts`（手写 stdio JSON-RPC，把 MCP 工具包装成本地 `Tool`）+ `src/m6.ts`（连接后并入 `toolMap`，loop/权限门零改动）；最小 server `demo/mcp-server-calc.ts`，验证 `demo/mcp-check.ts`
-- [ ] **M7** 子 agent（隔离上下文的 Task）
+- [x] **M7** 子 agent（隔离上下文的 Task）— `src/agent.ts`（把 m0-m6 的 inline loop 抽成可复用、可嵌套、可注入 client 的 `runAgent` 内核，主 / 子 agent 共用）+ `src/task.ts`（`makeTaskTool` 把「带独立上下文的子 loop」包成一个只读、防递归的 `Tool`）+ `src/m7.ts`（壳：连 MCP + 接 task + 把中断 / 审批当回调注入 `runAgent`）；验证 `demo/task-check.ts`（fake client，结果回收 / 上下文隔离 / 递归防护 7 断言）
 
 ## 技术栈
 
