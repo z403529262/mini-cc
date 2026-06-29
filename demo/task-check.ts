@@ -46,7 +46,12 @@ function makeFakeClient(scripts: Record<string, Anthropic.Message[]>): Anthropic
 const fakeTask = makeTaskTool({ client: {} as any, model: "x", parentTools: builtinTools })
 const sub = selectSubagentTools([...builtinTools, fakeTask]) // 故意把 task 也放进父集，考验剔除
 check("③ 递归防护：子 agent 工具集不含 task", !sub.some((t) => t.name === "task"))
-check("④ 只读子集：子 agent 工具全部 readOnly", sub.every((t) => t.readOnly), `得到 ${sub.map((t) => t.name).join(",")}`)
+// ④ 放行规则：只读 + MCP 工具进，写工具 / task 挡（验证 MCP 不被"只读一刀切"误伤）
+const mcpFake = { name: "mcp__calc__add", readOnly: false, description: "", input_schema: {}, execute: async () => "" }
+const mixedSub = selectSubagentTools([...builtinTools, mcpFake as any, fakeTask])
+check("④a MCP 工具放行(即便 readOnly:false)", mixedSub.some((t) => t.name === "mcp__calc__add"))
+check("④b 写工具被挡(非只读非 MCP)", !mixedSub.some((t) => ["write_file", "edit_file", "bash"].includes(t.name)))
+check("④c task 仍被剔除(递归防护)", !mixedSub.some((t) => t.name === "task"))
 check("⑤ task 工具 readOnly=true（自动放行不打扰用户）", fakeTask.readOnly === true)
 
 // === ① 结果回收：runAgent 返回【末条 assistant 的 text】，不是中间轮 ===

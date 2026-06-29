@@ -16,16 +16,18 @@ const SUBAGENT_SYSTEM =
   "你是被主 agent 派出的子 agent(调研 worker)。专注完成交代的任务：用只读工具(read_file/glob/grep)搜集信息，" +
   "然后用简洁中文【结论先行】汇报 —— 先给结论，再列关键文件/发现。不要复述读取过程、不要寒暄、不要反问、不要建议下一步。"
 
-// 选出给子 agent 的工具集：只读 + 显式剔除 task 自己。
-// 这一行同时做两件事：
-//   ① 只读集 —— 子 agent 不改文件，checkPermission 全 allow，可全自动跑完不卡审批
+// 选出给子 agent 的工具集：只读 / MCP 工具放行，显式剔除 task 自己。
+//   ① 只读工具 —— 子 agent 不改文件，checkPermission 全 allow，可全自动跑完不卡审批
 //      (子 agent 跑在工具调用里，没有终端可以弹 y/n)
-//   ② 递归防护 —— 剔除 task，子 agent 的工具表里根本没有 task，就无法再派生子 agent
-// ⚠️ 注意：task 自身 readOnly:true，会被 `t.readOnly` 选中！所以 `t.name !== "task"`
-//    这半个条件不可省 —— 它才是递归防护那一刀。对应 cc-haha filterToolsForAgent
-//    剔除 AGENT_TOOL_NAME(agentToolUtils.ts:104)。
+//   ② MCP 工具放行 —— MCP 是用户【主动接入】的外部能力，子 agent 调研时常要用(查 GitHub /
+//      索引代码…)。哪怕它 readOnly:false 也放行，否则"只读一刀切"会把它误伤 = 负向优化。
+//      对应 cc-haha filterToolsForAgent 的第一道闸：`mcp__` 前缀直接放行(agentToolUtils.ts:83)。
+//      (可见≠可执行：放行只是进工具表，有副作用的那次调用仍要过权限门。)
+//   ③ 递归防护 —— 剔除 task，子 agent 的工具表里根本没有 task，就无法再派生子 agent。
+// ⚠️ `t.name !== "task"` 不可省：task 自身 readOnly:true，会被 `t.readOnly` 选中！
+//    这半个条件才是递归防护那一刀。对应 cc-haha 剔除 AGENT_TOOL_NAME(agentToolUtils.ts:94)。
 export function selectSubagentTools(parentTools: Tool[]): Tool[] {
-  return parentTools.filter((t) => t.readOnly && t.name !== "task")
+  return parentTools.filter((t) => (t.readOnly || t.name.startsWith("mcp__")) && t.name !== "task")
 }
 
 export function makeTaskTool(opts: { client: Anthropic; model: string; parentTools: Tool[] }): Tool {
