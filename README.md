@@ -62,7 +62,7 @@ while (true) {
 
 > **延伸（LLM 应用层，非内核里程碑）**
 > - **D8 评估与可观测** — `demo/eval.ts` + `demo/eval-tasks.ts`：给 agent 固定任务集 + 判据，批量跑统计通过率 / 轮数 / token（程序化断言 + LLM-judge）。详见 `docs/D8-评估与可观测对照.md`
-> - **D9 RAG 与检索** — `demo/rag-mini.ts`：手写最小 RAG（chunk → TF-IDF → 余弦 top-k → 生成）+ agentic search 对照，讲清「RAG vs agentic」取舍、以及为什么 Claude Code 不挂向量库。详见 `docs/D9-RAG与检索对照.md`
+> - **D9 RAG 与检索** — `demo/rag-mini.ts`：手写最小 RAG（chunk → TF-IDF → 余弦 top-k → 生成）+ agentic search 对照，讲清「RAG vs agentic」取舍、以及为什么 Claude Code 不挂向量库。详见 `docs/D9-RAG与检索对照.md`；附录 `docs/D9-附录-生产级RAG深读.md`（解剖 Anthropic Contextual Retrieval 源码 + 映射经典六步 + 批判性读 RAG benchmark）
 
 ## 技术栈
 
