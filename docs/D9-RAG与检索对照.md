@@ -170,4 +170,44 @@ CC 把「大范围语义检索」做成了一个**只读探索子 agent**(`explo
 
 ---
 
-> 验证：`bun run demo/rag-mini.ts`(Part A 经典 RAG + TF-IDF 死穴铁证；Part B agentic 对照)。embedding 本地算、不碰网络；只 generate / agentic 两步调 LLM。
+## 附 · D9 帽子做满：结构化输出 + 重试降级
+
+D9 的帽子是「System prompt + LLM 通识」。主体做了 RAG,这里把通识里另两个面试高频、且能写代码讲清的补满。
+
+### 一、结构化输出(`demo/structured-output.ts`)
+
+**是什么 / 为什么**:让模型稳定吐「机器可解析」的 JSON,喂给下游代码(存库 / 调 API / 做判断)。「裸 prompt 求 JSON」会跑偏——实测 glm 就给输出裹了一层 Markdown 代码围栏(开头 ```json),`JSON.parse` 直接报错 `Unrecognized token`,得手动抠 `{…}` 清洗,脆弱。
+
+**最稳的【通用】解法 = 把 tool calling 当输出通道**:定义一个 schema 化的工具,`tool_choice: { type: "tool", name }` 强制模型必须调它,模型填的 tool input 就是被 schema 约束的对象——直接拿,无需 parse、无需清洗(实测 `age` 是 number、字段齐全)。
+
+| | 路 A 裸 prompt 求 JSON | 路 B tool 强制 schema |
+|---|---|---|
+| 输出 | 带代码围栏的文本 | 结构化对象(tool input) |
+| 解析 | `JSON.parse` 失败 → 要清洗 | 直接拿,无需 parse |
+| schema 约束 | 无(字段 / 类型全靠模型自觉) | 有(API 按 input_schema 校验) |
+| 可移植 | 任何端点 | 任何 Anthropic 兼容端点(实测智谱 glm-4.6 ✓) |
+
+**洞见**:结构化输出和 tool calling 是同一机制的两面——工具调用本来就是「模型输出一个 JSON Schema 约束的对象」。**mini-cc 的工具系统(D2 的 input_schema)本身就是个结构化输出引擎**,无需新机制。(另有原生 structured-output / JSON mode,但绑特定端点;tool 强制法最通用。)
+
+### 二、重试 / 降级(`demo/retry-fallback.ts`)
+
+**是什么 / 为什么**:LLM API 是网络服务,失败是常态(限流 429 / 超时 / 5xx / 网络抖动)。agent 跑几十轮,任一轮崩就全崩。重试 + 降级 = agent 的韧性。
+
+三件事(用 fake 注入验证,同 D7/D8 思路,不靠真触发 429):
+1. **指数退避 + jitter**:失败等 1s/2s/4s… 再试,加随机抖动防「惊群」(实测退避 70ms/106ms 带抖动)。
+2. **区分可重试 vs 不可重试(核心)**:429 / 5xx / 超时 / 网络 → 重试;400 参数错 / 401 鉴权错 → 重试无意义,立即放弃(实测 400 只调 1 次,不浪费)。
+3. **模型降级 fallback**:主模型连续失败(529 overloaded)→ 换备用模型(实测 primary 重试到顶 → 切 backup 成功)。
+
+**洞见**:①对 400/401 死磕重试是浪费、还可能放大故障——**可重试判定才是重试的灵魂**,不是退避公式。②fallback 把「重试」从『同模型再试』升级到『换模型再试』,扛得住单模型过载。③真实接 Anthropic SDK 时它**自带** 429/5xx 重试(默认 maxRetries:2),手写是为理解机制 + 自定义 fallback(SDK 不管换模型)。
+
+### 帽子补全金句
+
+8. **「结构化输出别靠 prompt 求 JSON——裸 prompt 模型爱裹代码围栏,parse 直接挂。用 tool_choice 强制 schema,拿到的就是 API 校验过的对象。结构化输出和 function calling 本来就是一回事。」**
+9. **「重试的灵魂不是退避公式,是『可重试判定』:429/5xx 才退避重试,400/401 死磕是浪费还放大故障。再加模型 fallback 扛单点过载。」**
+
+---
+
+> 验证：
+> - `bun run demo/rag-mini.ts`(RAG 主体:Part A 经典 RAG + TF-IDF 死穴铁证;Part B agentic 对照)。embedding 本地算、不碰网络;只 generate / agentic 两步调 LLM。
+> - `bun run demo/structured-output.ts`(结构化输出:裸 prompt vs tool 强制 schema,真 LLM)
+> - `bun run demo/retry-fallback.ts`(重试 / 降级:fake 注入三场景,纯本地)
