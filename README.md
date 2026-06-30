@@ -60,6 +60,10 @@ while (true) {
 - [x] **M6** MCP 客户端（接外部工具）— `src/mcp.ts`（手写 stdio JSON-RPC，把 MCP 工具包装成本地 `Tool`）+ `src/m6.ts`（连接后并入 `toolMap`，loop/权限门零改动）；最小 server `demo/mcp-server-calc.ts`，验证 `demo/mcp-check.ts`
 - [x] **M7** 子 agent（隔离上下文的 Task）— `src/agent.ts`（把 m0-m6 的 inline loop 抽成可复用、可嵌套、可注入 client 的 `runAgent` 内核，主 / 子 agent 共用）+ `src/task.ts`（`makeTaskTool` 把「带独立上下文的子 loop」包成一个只读、防递归的 `Tool`）+ `src/m7.ts`（壳：连 MCP + 接 task + 把中断 / 审批当回调注入 `runAgent`）；验证 `demo/task-check.ts`（fake client，结果回收 / 上下文隔离 / 递归防护 7 断言）
 
+> **延伸（LLM 应用层，非内核里程碑）**
+> - **D8 评估与可观测** — `demo/eval.ts` + `demo/eval-tasks.ts`：给 agent 固定任务集 + 判据，批量跑统计通过率 / 轮数 / token（程序化断言 + LLM-judge）。详见 `docs/D8-评估与可观测对照.md`
+> - **D9 RAG 与检索** — `demo/rag-mini.ts`：手写最小 RAG（chunk → TF-IDF → 余弦 top-k → 生成）+ agentic search 对照，讲清「RAG vs agentic」取舍、以及为什么 Claude Code 不挂向量库。详见 `docs/D9-RAG与检索对照.md`
+
 ## 技术栈
 
 Bun · TypeScript · [@anthropic-ai/sdk](https://github.com/anthropics/anthropic-sdk-typescript)
