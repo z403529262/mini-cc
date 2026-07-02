@@ -1,0 +1,19 @@
+# CI：push/PR 即跑全量测试。
+# 测试套件(tests/)特意设计成离线 —— fake client + 本地子进程，不需要任何 API key，
+# 所以 CI 零 secrets、零成本、确定性通过。需要真 LLM 的验证归 demo/eval.ts(本地手动跑)。
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun test

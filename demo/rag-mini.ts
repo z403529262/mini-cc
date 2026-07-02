@@ -58,7 +58,7 @@ function tokenize(s: string): string[] {
 // 余弦相似度：两向量夹角的 cos，∈[0,1](本例非负)。1=方向一致(最相关)，0=正交(无关)。
 function cosine(a: number[], b: number[]): number {
   let dot = 0, na = 0, nb = 0
-  for (let i = 0; i < a.length; i++) { dot += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i] }
+  for (let i = 0; i < a.length; i++) { dot += a[i]! * b[i]!; na += a[i]! * a[i]!; nb += b[i]! * b[i]! }
   return na && nb ? dot / (Math.sqrt(na) * Math.sqrt(nb)) : 0
 }
 
@@ -95,7 +95,7 @@ class TfidfIndex {
     const v = new Array(this.vocab.length).fill(0)
     tokens.forEach((t) => { const i = this.idxMap.get(t); if (i !== undefined) v[i] += 1 })
     const n = tokens.length || 1
-    return v.map((tf, i) => (tf / n) * this.idf[i])
+    return v.map((tf, i) => (tf / n) * this.idf[i]!)
   }
 
   embed(text: string): number[] { return this.vectorize(tokenize(text)) }
@@ -135,11 +135,11 @@ console.log(`知识库 ${chunks.length} 段 · 词表 ${index.vocab.length} 词\
 // Q1：词形能命中(问「权限审批」，知识库里就有这几个字) → RAG 正常工作的样子
 const q1 = "权限审批是怎么做的？"
 console.log(`Q1(词形能命中)：${q1}`)
-index.retrieve(q1, 2).forEach((h, i) => console.log(`  召回${i + 1} ${h.score.toFixed(3)}：${h.chunk.slice(0, 28)}…`))
+index.retrieve(q1, 2).forEach((h, i) => console.log(`  召回${i + 1} ${h.score.toFixed(3)}：${h.chunk!.slice(0, 28)}…`))
 console.log(`  RAG 答：${await ragAnswer(index, q1)}\n`)
 
 // TF-IDF 死穴铁证(不依赖召回运气/LLM)：两句语义几乎一样、词形不同 → 对同一段的余弦天差地别。
-const editVec = index.vectors[1] // 第 2 段 = edit_file(替换/精确/字符串)
+const editVec = index.vectors[1]! // 第 2 段 = edit_file(替换/精确/字符串)
 const sHigh = cosine(index.embed("精确替换字符串"), editVec)       // 词形高度重叠
 const sSyn = cosine(index.embed("变更档案的部分文本"), editVec)    // 同义、但几乎零词形重叠
 console.log(`TF-IDF 死穴铁证(都 vs edit_file 段)：`)
