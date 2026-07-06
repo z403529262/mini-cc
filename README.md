@@ -154,6 +154,7 @@ CI（GitHub Actions）在每次 push / PR 上跑 typecheck + 全量测试，零 
 | [D9 RAG 与检索](docs/D9-RAG与检索对照.md) | 最小 RAG 六步；为什么 Claude Code 不挂向量库 |
 | [D9 附录 生产级 RAG](docs/D9-附录-生产级RAG深读.md) | 解剖 Anthropic Contextual Retrieval 源码；批判性读 benchmark |
 | [D10 作品打磨](docs/D10-作品打磨.md) | 测试策略取舍；5 分钟走读这个 repo 的路线 |
+| [D11 面试题答题骨架](docs/D11-面试题答题骨架.md) | 十道高频题 + 压轴设计题，三段式：30 秒版 / 展开版 / 追问防守 |
 
 ## 技术栈
 
