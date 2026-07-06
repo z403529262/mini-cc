@@ -155,6 +155,9 @@ CI（GitHub Actions）在每次 push / PR 上跑 typecheck + 全量测试，零 
 | [D9 附录 生产级 RAG](docs/D9-附录-生产级RAG深读.md) | 解剖 Anthropic Contextual Retrieval 源码；批判性读 benchmark |
 | [D10 作品打磨](docs/D10-作品打磨.md) | 测试策略取舍；5 分钟走读这个 repo 的路线 |
 | [D11 面试题答题骨架](docs/D11-面试题答题骨架.md) | 十道高频题 + 压轴设计题，三段式：30 秒版 / 展开版 / 追问防守 |
+| [D11.5 通识补强卡](docs/D11.5-通识补强卡.md) | 采样参数 / 训练管线 / 推理模型 / KV cache / LoRA，五张机制层卡片 |
+| [D11.5 生态对比卡](docs/D11.5-生态对比卡.md) | OpenAI vs Anthropic API、框架 landscape、MCP vs A2A、benchmark 名录 |
+| [D11.5 生产专题](docs/D11.5-生产专题与面试形态.md) | 记忆系统 / durable execution / guardrails / 客服 agent 设计 / STAR 故事 |
 
 ## 技术栈
 
